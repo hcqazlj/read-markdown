@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MD Editor</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljs-theme">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #fafbfc;
+  --bg-deep: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.15);
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --accent: #6366f1;
+  --accent-soft: rgba(99,102,241,0.08);
+  --accent-hover: #4f46e5;
+  --accent-glow: rgba(99,102,241,0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --glass: rgba(255,255,255,0.7);
+  --glass-border: rgba(255,255,255,0.3);
+}
+
+[data-theme="dark"] {
+  --bg: #0c0e14;
+  --bg-deep: #111318;
+  --bg-card: #16181f;
+  --bg-elevated: #1c1e27;
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --accent: #818cf8;
+  --accent-soft: rgba(129,140,248,0.1);
+  --accent-hover: #a5b4fc;
+  --accent-glow: rgba(129,140,248,0.12);
+  --glass: rgba(22,24,31,0.8);
+  --glass-border: rgba(255,255,255,0.06);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========== WELCOME ========== */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 32px;
+  padding: 40px;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+  top: -200px; right: -100px;
+  pointer-events: none;
+}
+
+.welcome::after {
+  content: '';
+  position: absolute;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%);
+  bottom: -200px; left: -100px;
+  pointer-events: none;
+}
+
+.welcome-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-logo .icon {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.welcome-logo .icon svg { width: 26px; height: 26px; color: white; }
+
+.welcome h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.welcome-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  max-width: 380px;
+  text-align: center;
+  line-height: 1.7;
+  position: relative;
+  z-index: 1;
+}
+
+.drop-zone {
+  width: 460px;
+  max-width: 90vw;
+  height: 180px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--bg-card);
+  position: relative;
+  z-index: 1;
+}
+
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+.drop-zone .drop-icon {
+  width: 52px; height: 52px;
+  background: var(--accent-soft);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  transition: all var(--transition);
+}
+
+.drop-zone:hover .drop-icon { transform: translateY(-2px); }
+
+.drop-zone span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.drop-zone .accent { color: var(--accent); font-weight: 500; }
+
+.welcome-actions {
+  display: flex;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ========== BUTTONS ========== */
+.btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all var(--transition);
+  font-family: var(--font);
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+.btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* ========== HEADER ========== */
+.header {
+  display: none;
+  align-items: center;
+  padding: 0 16px;
+  height: 50px;
+  border-bottom: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  gap: 6px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+}
+
+.header.active { display: flex; }
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+.header-brand .icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.header-brand .icon svg { width: 15px; height: 15px; color: white; }
+
+.filename {
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.filename::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.header .btn { padding: 6px 12px; font-size: 12px; }
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+/* ========== TOOLBAR ========== */
+.toolbar {
+  display: none;
+  align-items: center;
+  padding: 3px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.toolbar.active { display: flex; }
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  background: var(--bg-deep);
+  border-radius: var(--radius-sm);
+  margin: 0 3px;
+}
+
+.toolbar-btn {
+  width: 30px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.12s;
+  font-size: 13px;
+  font-family: var(--font);
+  font-weight: 600;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-card);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar-btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 4px var(--accent-glow);
+}
+
+.toolbar-btn svg { width: 15px; height: 15px; }
+
+.toolbar-btn[title]::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 50;
+}
+
+.toolbar-btn:hover[title]::after { opacity: 1; }
+
+.view-modes {
+  display: flex;
+  gap: 1px;
+  margin-left: auto;
+  background: var(--bg-deep);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+/* ========== EDITOR AREA ========== */
+.editor-area {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+
+.editor-area.active { display: flex; }
+
+.pane {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 7px 20px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pane-header::before {
+  content: '';
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.divider {
+  width: 1px;
+  background: var(--border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: all var(--transition);
+  position: relative;
+}
+
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -3px; right: -3px;
+  z-index: 10;
+}
+
+.divider:hover, .divider.dragging {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ========== PREVIEW ========== */
+.preview-scroll {
+  flex: 1;
+  overflow: auto;
+}
+
+.preview-content {
+  padding: 32px 40px 80px;
+  max-width: 900px;
+  line-height: 1.8;
+  font-size: 15px;
+  margin: 0 auto;
+}
+
+.preview-content h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 32px 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+  letter-spacing: -0.5px;
+}
+
+.preview-content h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 28px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.3px;
+}
+
+.preview-content h3 { font-size: 1.25em; font-weight: 600; margin: 24px 0 10px; }
+.preview-content h4 { font-size: 1.1em; font-weight: 600; margin: 20px 0 8px; }
+.preview-content h5 { font-size: 1em; font-weight: 600; margin: 18px 0 6px; }
+.preview-content h6 { font-size: 0.9em; font-weight: 600; margin: 16px 0 6px; color: var(--text-secondary); }
+.preview-content p { margin: 0 0 16px; }
+.preview-content strong { font-weight: 600; }
+
+.preview-content a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--transition);
+}
+.preview-content a:hover { border-bottom-color: var(--accent); }
+
+.preview-content img { max-width: 100%; border-radius: var(--radius); }
+
+.preview-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 12px 20px;
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-style: italic;
+}
+
+.preview-content blockquote p:last-child { margin-bottom: 0; }
+
+.preview-content code {
+  background: var(--bg-deep);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.85em;
+  font-family: var(--mono);
+  border: 1px solid var(--border);
+}
+
+.preview-content pre {
+  background: var(--bg-deep);
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.preview-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  border: none;
+  line-height: 1.6;
+}
+
+.preview-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 16px;
+  font-size: 14px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.preview-content th, .preview-content td {
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.preview-content th {
+  background: var(--bg-deep);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.preview-content tr:hover td { background: var(--accent-soft); }
+
+.preview-content ul, .preview-content ol { margin: 0 0 16px; padding-left: 26px; }
+.preview-content li { margin: 5px 0; }
+.preview-content li > ul, .preview-content li > ol { margin-bottom: 0; }
+
+.preview-content hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+  margin: 32px 0;
+}
+
+.preview-content input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  cursor: default;
+}
+
+.preview-content input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.preview-content input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px; top: 1px;
+  width: 5px; height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Mermaid */
+.preview-content .mermaid-container {
+  margin: 16px 0;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  text-align: center;
+}
+
+.preview-content .mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ========== SOURCE EDITOR ========== */
+.source-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#source {
+  width: 100%;
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 20px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.75;
+  background: var(--bg-card);
+  color: var(--text);
+  tab-size: 2;
+}
+
+#source::placeholder { color: var(--text-muted); }
+
+/* ========== STATUS BAR ========== */
+.statusbar {
+  display: none;
+  align-items: center;
+  padding: 0 16px;
+  height: 26px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-deep);
+  font-size: 11px;
+  color: var(--text-muted);
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.statusbar.active { display: flex; }
+
+.statusbar .stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.statusbar .dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+/* ========== TOAST ========== */
+.toast {
+  position: fixed;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 24px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ========== HIDDEN ========== */
+#file-input { display: none; }
+
+/* ========== SCROLLBAR ========== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .editor-area { flex-direction: column; }
+  .divider { width: 100%; height: 1px; cursor: row-resize; }
+  .divider::after { top: -3px; bottom: -3px; left: 0; right: 0; }
+  .preview-content { padding: 20px; }
+  .header { gap: 4px; padding: 0 8px; }
+  .header .btn span.label { display: none; }
+}
+
+/* ========== MERMAID DARK ========== */
+[data-theme="dark"] .mermaid-container {
+  background: var(--bg-elevated);
+}
+</style>
+</head>
+<body>
+
+<!-- Welcome Screen -->
+<div class="welcome" id="welcome">
+  <div class="welcome-logo">
+    <div class="icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <line x1="10" y1="9" x2="8" y2="9"/>
+      </svg>
+    </div>
+    <h1>MD Editor</h1>
+  </div>
+  <p class="welcome-subtitle">
+    实时预览 Markdown，支持 Mermaid 图表渲染、代码高亮、表格、任务列表等所有常用格式。
+  </p>
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <span>拖拽 <span class="accent">.md</span> 文件到此处，或 <span class="accent">点击选择</span></span>
+  </div>
+  <div class="welcome-actions">
+    <button class="btn btn-primary" onclick="newFile()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      新建文档
+    </button>
+    <button class="btn" onclick="loadDemo()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      加载示例
+    </button>
+    <button class="btn btn-ghost" id="themeToggleWelcome" onclick="toggleTheme()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header" id="header">
+  <div class="header-brand">
+    <div class="icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+    </div>
+  </div>
+  <span class="filename" id="filenameBadge">untitled.md</span>
+
+  <button class="btn" onclick="document.getElementById('file-input').click()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+    <span class="label">打开</span>
+  </button>
+  <button class="btn" onclick="newFile()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span class="label">新建</span>
+  </button>
+  <div class="separator"></div>
+  <button class="btn" onclick="exportMd()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span class="label">MD</span>
+  </button>
+  <button class="btn" onclick="exportHtml()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    <span class="label">HTML</span>
+  </button>
+  <button class="btn" onclick="copyToClipboard()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    <span class="label">复制</span>
+  </button>
+  <div class="separator"></div>
+  <button class="btn btn-ghost" id="themeToggleHeader" onclick="toggleTheme()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  </button>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar" id="toolbar">
+  <div class="toolbar-group">
+    <button class="toolbar-btn" onclick="insertFormat('bold')" title="粗体"><b>B</b></button>
+    <button class="toolbar-btn" onclick="insertFormat('italic')" title="斜体"><i style="font-style:italic">I</i></button>
+    <button class="toolbar-btn" onclick="insertFormat('strike')" title="删除线"><s>S</s></button>
+    <button class="toolbar-btn" onclick="insertFormat('code')" title="行内代码">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    </button>
+  </div>
+  <div class="toolbar-group">
+    <button class="toolbar-btn" onclick="insertFormat('h1')" title="标题1" style="font-size:14px">H1</button>
+    <button class="toolbar-btn" onclick="insertFormat('h2')" title="标题2" style="font-size:13px">H2</button>
+    <button class="toolbar-btn" onclick="insertFormat('h3')" title="标题3" style="font-size:12px">H3</button>
+  </div>
+  <div class="toolbar-group">
+    <button class="toolbar-btn" onclick="insertFormat('ul')" title="无序列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('ol')" title="有序列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="3" y="8" font-size="8" fill="currentColor" font-family="sans-serif">1</text><text x="3" y="14" font-size="8" fill="currentColor" font-family="sans-serif">2</text><text x="3" y="20" font-size="8" fill="currentColor" font-family="sans-serif">3</text></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('task')" title="任务列表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="6" height="6" rx="1"/><polyline points="4.5 8 6 9.5 8.5 6.5"/><line x1="12" y1="8" x2="21" y2="8"/><rect x="3" y="14" width="6" height="6" rx="1"/><line x1="12" y1="17" x2="21" y2="17"/></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('quote')" title="引用">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg>
+    </button>
+  </div>
+  <div class="toolbar-group">
+    <button class="toolbar-btn" onclick="insertFormat('link')" title="链接">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('image')" title="图片">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('table')" title="表格">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('codeblock')" title="代码块">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="9 8 5 12 9 16"/><polyline points="15 8 19 12 15 16"/></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('mermaid')" title="Mermaid 图表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><line x1="12" y1="7" x2="5" y2="17"/><line x1="12" y1="7" x2="19" y2="17"/></svg>
+    </button>
+    <button class="toolbar-btn" onclick="insertFormat('hr')" title="分隔线">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/></svg>
+    </button>
+  </div>
+  <div class="view-modes">
+    <button class="toolbar-btn" id="viewBoth" onclick="setView('both')" title="双栏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+    </button>
+    <button class="toolbar-btn" id="viewPreview" onclick="setView('preview')" title="预览">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <button class="toolbar-btn" id="viewSource" onclick="setView('source')" title="编辑">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Editor Area -->
+<div class="editor-area" id="editorArea">
+  <div class="pane" id="previewPane">
+    <div class="pane-header">Preview</div>
+    <div class="preview-scroll">
+      <div class="preview-content" id="preview"></div>
+    </div>
+  </div>
+  <div class="divider" id="divider"></div>
+  <div class="pane" id="sourcePane">
+    <div class="pane-header">Source</div>
+    <div class="source-wrapper">
+      <textarea id="source" spellcheck="false" placeholder="在此输入 Markdown ..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Status bar -->
+<div class="statusbar" id="statusbar">
+  <div class="stat"><span class="dot"></span> Ready</div>
+  <span id="charCount">0 字符</span>
+  <span id="wordCount">0 词</span>
+  <span id="lineCount">0 行</span>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- File input -->
+<input type="file" id="file-input" accept=".md,.markdown,.txt">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+<script>
+// --- State ---
+let currentFilename = 'untitled.md';
+let currentView = 'both';
+let syncScrolling = true;
+let mermaidId = 0;
+
+// --- Mermaid init ---
+function initMermaid() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDark ? 'dark' : 'default',
+    securityLevel: 'loose',
+    fontFamily: 'Inter, sans-serif',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: true },
+    themeVariables: isDark ? {
+      primaryColor: '#818cf8',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#4f46e5',
+      lineColor: '#475569',
+      secondaryColor: '#1e293b',
+      tertiaryColor: '#1c1e27'
+    } : {
+      primaryColor: '#6366f1',
+      primaryTextColor: '#0f172a',
+      primaryBorderColor: '#4f46e5',
+      lineColor: '#94a3b8',
+      secondaryColor: '#f1f5f9',
+      tertiaryColor: '#fafbfc'
+    }
+  });
+}
+initMermaid();
+
+// --- Marked setup with Mermaid support ---
+const renderer = new marked.Renderer();
+const origCode = renderer.code;
+renderer.code = function(code, lang, escaped) {
+  if (lang === 'mermaid') {
+    mermaidId++;
+    return '<div class="mermaid-container" data-mermaid-id="m' + mermaidId + '">' + code + '</div>';
+  }
+  const validLang = lang && hljs.getLanguage(lang);
+  const highlighted = validLang
+    ? hljs.highlight(code, { language: lang }).value
+    : hljs.highlightAuto(code).value;
+  return '<pre><code class="hljs' + (validLang ? ' language-' + lang : '') + '">' + highlighted + '</code></pre>';
+};
+
+marked.setOptions({
+  renderer: renderer,
+  breaks: true,
+  gfm: true,
+});
+
+// --- DOM refs ---
+const $ = id => document.getElementById(id);
+const source = $('source');
+const preview = $('preview');
+const welcome = $('welcome');
+const header = $('header');
+const toolbar = $('toolbar');
+const editorArea = $('editorArea');
+const statusbar = $('statusbar');
+const divider = $('divider');
+const previewPane = $('previewPane');
+const sourcePane = $('sourcePane');
+
+// --- Theme ---
+function updateHljsTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  $('hljs-theme').href = isDark
+    ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css'
+    : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  localStorage.setItem('md-theme', isDark ? 'light' : 'dark');
+  updateHljsTheme();
+  initMermaid();
+  renderPreview();
+}
+
+(function initTheme() {
+  const saved = localStorage.getItem('md-theme');
+  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  updateHljsTheme();
+})();
+
+// --- Enter editor mode ---
+function enterEditor(text, filename) {
+  currentFilename = filename || 'untitled.md';
+  $('filenameBadge').textContent = currentFilename;
+  source.value = text;
+  welcome.style.display = 'none';
+  header.classList.add('active');
+  toolbar.classList.add('active');
+  editorArea.classList.add('active');
+  statusbar.classList.add('active');
+  renderPreview();
+  updateStats();
+  source.focus();
+}
+
+function newFile() {
+  enterEditor('', 'untitled.md');
+}
+
+function loadDemo() {
+  const demo = `# 智能工作站项目分析
+
+> 汇报用文档：总结现有架构、三种工作模式、当前不足，以及下一阶段的开发方向。
+
+## 项目概况
+
+AI Conductor 是一套面向实验室自动化工作站的控制软件。
+
+| 工作站 | 设备 | 业务能力 | 典型流程 |
+|---|---|---|---|
+| 分料工作站 | SCARA 机械臂、振动加料器 | 瓶子搬运、按目标质量加料 | 瓶位 → 电子秤 → 加料 → 放回 |
+| 酶标仪工作站 | SCARA 机械臂、酶标仪 | 孔板搬运、检测方案执行 | 推出托盘 → 板架 → 检测 → 取回 |
+
+## 架构图
+
+\`\`\`mermaid
+flowchart TB
+    subgraph UI["前端（通用渲染器）"]
+        A1["流程可视化编辑"]
+        A2["AI 对话 / 审批"]
+        A3["运行监控 / 3D 预览"]
+    end
+
+    subgraph BE["后端（Rust）"]
+        B1["流程解析与校验"]
+        B2["运行引擎"]
+        B4["AI 编排"]
+    end
+
+    subgraph MCP["工作站 MCP 服务"]
+        C1["业务工具"]
+        C2["坐标与路线"]
+        C3["设备驱动"]
+    end
+
+    UI -->|"HTTP / SSE"| BE
+    BE -->|"MCP 协议"| MCP
+\`\`\`
+
+## 工作流程
+
+\`\`\`mermaid
+sequenceDiagram
+    participant U as 用户
+    participant F as 前端
+    participant B as 后端
+    participant M as MCP
+    participant D as 设备
+
+    F->>M: 读取工具列表
+    U->>F: 编排实验流程
+    F->>B: 提交流程
+    loop 执行每一步
+        B->>M: 调用工具
+        M->>D: 驱动设备
+        D-->>M: 状态数据
+        M-->>B: 结果
+    end
+    B-->>F: 运行记录
+\`\`\`
+
+## 代码示例
+
+\`\`\`rust
+async fn execute_step(step: &Step, mcp: &McpClient) -> Result<StepResult> {
+    let tool = mcp.get_tool(&step.tool_name).await?;
+    let params = validate_params(&step.params, &tool.schema)?;
+    mcp.call_tool(&step.tool_name, params).await
+}
+\`\`\`
+
+## 三种工作模式
+
+- [x] **手动编排** — 用户拖入工具、填参数、点击执行
+- [x] **智能编排** — AI 生成流程，用户可修改后执行
+- [ ] **Agent 模式** — AI 闭环完成实验，出错自动恢复
+
+## 开发路线
+
+\`\`\`mermaid
+flowchart LR
+    P1["第一阶段\\n安全闭环"] --> P2["第二阶段\\n点位示教"]
+    P2 --> P3["第三阶段\\n流程扩展"]
+    P3 --> P4["第四阶段\\nAI 深度使用"]
+\`\`\`
+
+> **建议：** 第一阶段优先，因为它直接关系到设备和样品安全。
+
+---
+
+*使用工具栏快捷按钮插入格式，或直接编辑源码。支持 Mermaid 图表实时渲染。*
+`;
+  enterEditor(demo, 'demo.md');
+}
+
+// --- Render ---
+async function renderPreview() {
+  preview.innerHTML = marked.parse(source.value);
+
+  // Render mermaid diagrams
+  const mermaidContainers = preview.querySelectorAll('.mermaid-container');
+  for (const container of mermaidContainers) {
+    const code = container.textContent.trim();
+    const uid = 'mmd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    try {
+      const { svg } = await mermaid.render(uid, code);
+      container.innerHTML = svg;
+    } catch (e) {
+      container.innerHTML = '<pre style="color:var(--danger);font-size:12px;text-align:left">Mermaid Error: ' + (e.message || e) + '</pre>';
+      // Clean up any leftover temp elements mermaid creates
+      const temp = document.getElementById('d' + uid);
+      if (temp) temp.remove();
+    }
+  }
+}
+
+function updateStats() {
+  const text = source.value;
+  $('charCount').textContent = text.length + ' 字符';
+  $('wordCount').textContent = (text.match(/[一-鿿]|[a-zA-Z]+/g) || []).length + ' 词';
+  $('lineCount').textContent = (text.match(/\n/g) || []).length + 1 + ' 行';
+}
+
+let renderTimer;
+source.addEventListener('input', () => {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    mermaidId = 0;
+    renderPreview();
+    updateStats();
+  }, 150);
+});
+
+// --- File handling ---
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => enterEditor(e.target.result, file.name);
+  reader.readAsText(file);
+}
+
+$('file-input').addEventListener('change', e => handleFile(e.target.files[0]));
+
+const dropZone = $('dropZone');
+dropZone.addEventListener('click', () => $('file-input').click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && /\.(md|markdown|txt)$/i.test(file.name)) handleFile(file);
+});
+
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file && /\.(md|markdown|txt)$/i.test(file.name)) handleFile(file);
+});
+
+// --- View modes ---
+function setView(mode) {
+  currentView = mode;
+  ['viewBoth', 'viewPreview', 'viewSource'].forEach(id => $(id).classList.remove('active'));
+  $('view' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
+  previewPane.style.display = (mode === 'source') ? 'none' : '';
+  sourcePane.style.display = (mode === 'preview') ? 'none' : '';
+  divider.style.display = (mode === 'both') ? '' : 'none';
+}
+setView('both');
+
+// --- Divider drag ---
+let isDragging = false;
+divider.addEventListener('mousedown', e => {
+  isDragging = true;
+  divider.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const rect = editorArea.getBoundingClientRect();
+  const ratio = Math.max(0.2, Math.min(0.8, (e.clientX - rect.left) / rect.width));
+  previewPane.style.flex = `${ratio}`;
+  sourcePane.style.flex = `${1 - ratio}`;
+});
+
+document.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+});
+
+// --- Format insertion ---
+function insertFormat(type) {
+  source.focus();
+  const start = source.selectionStart;
+  const end = source.selectionEnd;
+  const text = source.value;
+  const selected = text.slice(start, end);
+  let before = '', after = '', insert = '';
+  const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+
+  switch (type) {
+    case 'bold':      before = '**'; after = '**'; insert = selected || '粗体文本'; break;
+    case 'italic':    before = '*';  after = '*';  insert = selected || '斜体文本'; break;
+    case 'strike':    before = '~~'; after = '~~'; insert = selected || '删除线文本'; break;
+    case 'code':      before = '`';  after = '`';  insert = selected || 'code'; break;
+    case 'h1':        before = '# '; insert = selected || '标题'; break;
+    case 'h2':        before = '## '; insert = selected || '标题'; break;
+    case 'h3':        before = '### '; insert = selected || '标题'; break;
+    case 'ul':        before = '- '; insert = selected || '列表项'; break;
+    case 'ol':        before = '1. '; insert = selected || '列表项'; break;
+    case 'task':      before = '- [ ] '; insert = selected || '任务项'; break;
+    case 'quote':     before = '> '; insert = selected || '引用文本'; break;
+    case 'link':      before = '['; after = '](url)'; insert = selected || '链接文本'; break;
+    case 'image':     before = '!['; after = '](url)'; insert = selected || 'alt text'; break;
+    case 'hr':        before = '\n---\n'; insert = ''; break;
+    case 'table':
+      insert = '\n| 列1 | 列2 | 列3 |\n|------|------|------|\n| 内容 | 内容 | 内容 |\n';
+      break;
+    case 'codeblock':
+      before = '\n```\n'; after = '\n```\n'; insert = selected || '// code here';
+      break;
+    case 'mermaid':
+      before = '\n```mermaid\n'; after = '\n```\n'; insert = selected || 'flowchart LR\n    A["开始"] --> B["结束"]';
+      break;
+  }
+
+  if (['h1','h2','h3','ul','ol','task','quote'].includes(type) && !selected) {
+    const replacement = before + insert + after;
+    source.value = text.slice(0, lineStart) + replacement + text.slice(end);
+    source.selectionStart = source.selectionEnd = lineStart + replacement.length;
+  } else {
+    const replacement = before + insert + after;
+    source.value = text.slice(0, start) + replacement + text.slice(end);
+    source.selectionStart = start + before.length;
+    source.selectionEnd = start + before.length + insert.length;
+  }
+
+  source.dispatchEvent(new Event('input'));
+}
+
+// --- Keyboard shortcuts ---
+source.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); insertFormat('bold'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); insertFormat('italic'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); insertFormat('link'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); exportMd(); }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = source.selectionStart;
+    source.value = source.value.slice(0, s) + '  ' + source.value.slice(source.selectionEnd);
+    source.selectionStart = source.selectionEnd = s + 2;
+    source.dispatchEvent(new Event('input'));
+  }
+});
+
+// --- Export ---
+function exportMd() {
+  download(source.value, currentFilename, 'text/markdown');
+  showToast('已导出 ' + currentFilename);
+}
+
+function exportHtml() {
+  const content = preview.innerHTML;
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${currentFilename.replace('.md', '')}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:900px;margin:40px auto;padding:0 24px;line-height:1.8;color:#0f172a}
+h1,h2{border-bottom:1px solid #e2e8f0;padding-bottom:8px}h1{font-size:2em}h2{font-size:1.5em}
+code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.85em;font-family:'JetBrains Mono',monospace}
+pre{background:#f1f5f9;padding:16px;border-radius:10px;overflow-x:auto;border:1px solid #e2e8f0}pre code{background:none;padding:0}
+blockquote{border-left:3px solid #6366f1;padding:12px 20px;margin:0 0 16px;color:#64748b;background:rgba(99,102,241,0.06);border-radius:0 10px 10px 0}
+table{border-collapse:collapse;width:100%}th,td{border:1px solid #e2e8f0;padding:10px 14px}th{background:#f8fafc;font-weight:600}
+img{max-width:100%}hr{border:none;height:1px;background:linear-gradient(90deg,transparent,#cbd5e1,transparent);margin:32px 0}
+input[type="checkbox"]{margin-right:6px}.mermaid-container{text-align:center;margin:16px 0}
+</style>
+</head>
+<body>${content}</body>
+</html>`;
+  const name = currentFilename.replace(/\.md$/, '.html');
+  download(html, name, 'text/html');
+  showToast('已导出 ' + name);
+}
+
+function copyToClipboard() {
+  navigator.clipboard.writeText(source.value).then(() => showToast('已复制到剪贴板'));
+}
+
+function download(content, filename, mime) {
+  const blob = new Blob([content], { type: mime + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- Toast ---
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// --- Sync scroll ---
+const previewScroll = previewPane.querySelector('.preview-scroll');
+
+previewScroll.addEventListener('scroll', () => {
+  if (!syncScrolling || currentView !== 'both') return;
+  const ratio = previewScroll.scrollTop / (previewScroll.scrollHeight - previewScroll.clientHeight || 1);
+  syncScrolling = false;
+  source.scrollTop = ratio * (source.scrollHeight - source.clientHeight);
+  setTimeout(() => syncScrolling = true, 50);
+});
+
+source.addEventListener('scroll', () => {
+  if (!syncScrolling || currentView !== 'both') return;
+  const ratio = source.scrollTop / (source.scrollHeight - source.clientHeight || 1);
+  syncScrolling = false;
+  previewScroll.scrollTop = ratio * (previewScroll.scrollHeight - previewScroll.clientHeight);
+  setTimeout(() => syncScrolling = true, 50);
+});
+</script>
+</body>
+</html>
